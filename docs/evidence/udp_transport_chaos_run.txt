@@ -1,0 +1,53 @@
+=== VRP UDP TRANSPORT CHAOS RUN ===
+
+Environment:
+- device: Termux (mobile)
+- transport: UDP (localhost)
+- concurrency: goroutines
+- delivery: nondeterministic (random delay)
+
+=== RUNTIME OUTPUT ===
+
+UDP server listening on :9999
+=== UDP CHAOS TEST ===
+
+[net] sent: payment-002 1 node-A 50 delay=65
+[vrp] REJECTED reason=stale_epoch payment-002
+
+[net] sent: payment-003 2 node-B 75 delay=127
+[vrp] REJECTED reason=non_authority payment-003
+
+[net] sent: payment-004 2 node-A 25 delay=145
+[vrp] ACCEPTED reason=canonical_commit payment-004
+
+[net] sent: payment-001 2 node-A 100 delay=158
+[vrp] ACCEPTED reason=canonical_commit payment-001
+
+[net] sent: payment-001 2 node-A 100 delay=160
+[vrp] REJECTED reason=duplicate_mutation payment-001
+
+=== RESULT ===
+
+balance = 125
+invariant_violations = 0
+
+VERDICT: CONSISTENT
+
+=== INVARIANT ===
+
+one mutation → at most one commit
+
+=== PROOF SUMMARY ===
+
+- stale epoch → rejected  
+- non-authority mutation → rejected  
+- duplicate mutation → rejected  
+- valid mutations → committed once  
+
+Transport conditions:
+- random delay applied
+- concurrent delivery via goroutines
+- non-deterministic ordering
+
+Result:
+execution state remained consistent
