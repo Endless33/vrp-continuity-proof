@@ -1,0 +1,69 @@
+=== VRP CHAOS ORCHESTRATOR DEMO ===
+Invariant: unstable delivery must not corrupt execution state
+                                                        CHAOS CONDITIONS:
+- duplicate delivery
+- delayed retry
+- reordered arrival
+- stale epoch
+- multi-node race candidate
+- non-authority rejection
+
+NETWORK DELIVERY ORDER:
+  delivered seq=1 label=original mutation
+  delivered seq=4 label=valid mutation delivered early due to reorder
+  delivered seq=2 label=retry after lost response
+  delivered seq=3 label=stale epoch arrives late
+  delivered seq=5 label=multi-node race candidate from non-authority
+  delivered seq=6 label=duplicate of reordered mutation
+
+LOGICAL ORDER CHECK:
+  reorder_detected delivered_position=2 logical_seq=4 mutation=payment-004
+  reorder_detected delivered_position=3 logical_seq=2 mutation=payment-001
+  reorder_detected delivered_position=4 logical_seq=3 mutation=payment-002
+
+RUNTIME PROCESSING:
+[delivery] seq=1 delay=0ms label=original mutation
+[vrp] session=session-chaos-001 epoch=7 node=node-A mutation=payment-001 amount=100
+[vrp] decision=ACCEPTED reason=canonical_commit
+
+[delivery] seq=4 delay=20ms label=valid mutation delivered early due to reorder
+[vrp] session=session-chaos-001 epoch=7 node=node-A mutation=payment-004 amount=25
+[vrp] note=delayed_input_revalidated
+[vrp] decision=ACCEPTED reason=canonical_commit
+
+[delivery] seq=2 delay=120ms label=retry after lost response
+[vrp] session=session-chaos-001 epoch=7 node=node-A mutation=payment-001 amount=100
+[vrp] note=delayed_input_revalidated
+[vrp] decision=REJECTED reason=duplicate_mutation
+
+[delivery] seq=3 delay=200ms label=stale epoch arrives late
+[vrp] session=session-chaos-001 epoch=6 node=node-A mutation=payment-002 amount=50
+[vrp] note=delayed_input_revalidated
+[vrp] decision=REJECTED reason=stale_epoch
+
+[delivery] seq=5 delay=40ms label=multi-node race candidate from non-authority
+[vrp] session=session-chaos-001 epoch=7 node=node-B mutation=payment-003 amount=75
+[vrp] note=delayed_input_revalidated
+[vrp] decision=REJECTED reason=non_canonical_authority
+
+[delivery] seq=6 delay=260ms label=duplicate of reordered mutation
+[vrp] session=session-chaos-001 epoch=7 node=node-A mutation=payment-004 amount=25
+[vrp] note=delayed_input_revalidated
+[vrp] decision=REJECTED reason=duplicate_mutation
+
+=== PROOF REPORT ===
+session=session-chaos-001
+epoch=7
+authority=node-A
+committed_mutations=2
+duplicates_rejected=2
+stale_epoch_rejected=1
+non_authority_rejected=1
+race_candidates_rejected=1
+delayed_inputs_handled=5
+reordered_inputs_detected=3
+balance=125
+invariant_violations=0
+
+VERDICT: CONSISTENT
+Proof: duplicate, delay, reorder, stale epoch, and race candidate did not corrupt state
