@@ -89,6 +89,29 @@ This is a minimal proof artifact.
 
 ---
 
+## Chaos Commit Demo
+
+Run:
+
+```bash
+go run ./cmd/chaos_commit_demo
+
+This demo simulates:
+duplicate delivery
+retry after lost response
+stale epoch
+non-authority mutation
+reordered input
+Expected:
+one logical mutation commits at most once
+invalid inputs are rejected
+invariant_violations = 0
+Example output:
+
+VERDICT: CONSISTENT
+
+---
+
 ## Direction
 
 Part of the VRP / Jumping VPN research:
