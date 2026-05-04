@@ -158,6 +158,53 @@ This demonstrates deterministic convergence under concurrent execution.
 
 ---
 
+## Chaos Orchestrator Demo
+
+Run:
+
+```bash
+go run ./cmd/chaos_orchestrator_demo
+```
+
+This demo simulates combined failure conditions in a single execution:
+
+- duplicate delivery  
+- delayed retry  
+- reordered arrival  
+- stale epoch  
+- multi-node race candidate  
+- non-authority mutation  
+
+Expected behavior:
+
+- valid mutations commit once  
+- duplicate inputs are rejected  
+- stale and invalid inputs are rejected  
+- concurrent candidates do not create divergence  
+
+Example outcome:
+
+```
+committed_mutations=2
+duplicates_rejected=2
+stale_epoch_rejected=1
+non_authority_rejected=1
+race_candidates_rejected=1
+invariant_violations=0
+
+VERDICT: CONSISTENT
+```
+
+Invariant:
+
+```
+one mutation → at most one commit
+```
+
+This demonstrates system-level correctness under combined network chaos.
+
+---
+
 ## Direction
 
 Part of the VRP / Jumping VPN research:
