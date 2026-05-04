@@ -112,6 +112,52 @@ VERDICT: CONSISTENT
 
 ---
 
+## Multi-Node Race Demo
+
+Run:
+
+```bash
+go run ./cmd/multi_node_race_demo
+```
+
+This demo simulates a race condition between multiple nodes attempting to commit the same mutation.
+
+Scenario:
+
+- same session  
+- same epoch  
+- same mutation  
+- different nodes  
+
+Expected behavior:
+
+- multiple candidates may exist  
+- only one candidate is allowed to commit  
+- all others are rejected before state mutation  
+
+Example outcome:
+
+```
+candidate node=node-A → ACCEPTED
+candidate node=node-B → REJECTED
+
+committed_candidates=1
+authority_conflicts=1
+invariant_violations=0
+
+VERDICT: CONSISTENT
+```
+
+Invariant:
+
+```
+one mutation → at most one commit
+```
+
+This demonstrates deterministic convergence under concurrent execution.
+
+---
+
 ## Direction
 
 Part of the VRP / Jumping VPN research:
