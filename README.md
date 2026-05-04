@@ -205,6 +205,25 @@ This demonstrates system-level correctness under combined network chaos.
 
 ---
 
+## UDP Transport Chaos Demo
+
+Run:
+
+```bash
+go run ./cmd/udp_transport_chaos_demo
+
+This demo uses a real UDP socket, goroutines, and random delivery delay.
+It validates that unstable transport timing does not corrupt execution state.
+Expected:
+
+stale_epoch → rejected
+non_authority → rejected
+duplicate_mutation → rejected
+invariant_violations = 0
+VERDICT: CONSISTENT
+
+---
+
 ## Direction
 
 Part of the VRP / Jumping VPN research:
