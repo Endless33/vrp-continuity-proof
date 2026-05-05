@@ -224,6 +224,32 @@ VERDICT: CONSISTENT
 
 ---
 
+## Run on Windows
+
+Clone the repository and run:
+
+```bat
+run_vrp_proof_windows.bat
+
+Or manually:
+
+Bash
+go run ./cmd/oracle_unified_proof_runner
+
+For UDP continuity handoff proof, use two terminals:
+
+Terminal 1:
+
+Bash
+go run ./cmd/udp_continuity_server
+
+Terminal 2:
+
+Bash
+go run ./cmd/udp_continuity_client
+
+---
+
 ## Direction
 
 Part of the VRP / Jumping VPN research:
