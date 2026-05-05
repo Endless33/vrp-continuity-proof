@@ -48,3 +48,33 @@ add Oracle Linux 10 continuity proof
 
 ---
 
+# Oracle Linux 10 Chaos Proof
+
+Oracle Linux 10 chaos proof run completed.
+
+This proof validates continuity behavior under:
+
+- out-of-order delivery
+- duplicate retry
+- stale authority
+- epoch authority transfer
+- post-transfer resume
+
+## Result
+
+```text
+REJECTED: duplicate
+REJECTED: stale epoch
+ACCEPTED: authority transferred
+state=ACTIVE epoch=2 authority=node-b
+VERDICT: CONSISTENT
+
+Meaning
+The session did not die when the transport path failed.
+Old authority could not mutate state after transfer.
+Duplicate delivery did not create a second mutation.
+Execution resumed under the new authority.
+Status
+Proof: VALID
+Environment: Oracle Linux 10
+Mode: isolated chaos proof layer
