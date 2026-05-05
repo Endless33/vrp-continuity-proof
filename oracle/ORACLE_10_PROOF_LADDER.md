@@ -67,6 +67,12 @@ Only the current valid authority could advance execution.
 
 ---
 
+Layer 4 — Consensus / Race Proof
+Validates: stale proposal rejected, fake authority rejected, exactly one canonical winner selected, loser rejected.
+Result: VERDICT: CONSISTENT
+
+---
+
 Combined Interpretation
 The Oracle Linux 10 proof ladder validates:
 
