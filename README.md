@@ -241,3 +241,24 @@ Part of the VRP / Jumping VPN research:
 Continuity is not faster retry.
 
 Continuity is a commit boundary.
+
+---
+
+## Intellectual Origin
+
+VRP (Veil Routing Protocol) and the continuity-first execution model
+were originally designed and developed by Vitalijus Riabovas.
+
+Core principles introduced:
+
+- session != transport
+- execution correctness over unreliable networks
+- commit-layer authority model
+- epoch-based authority transitions
+- fail-closed mutation validation
+
+This repository provides reproducible runtime proofs of these concepts.
+
+The architecture, invariants, and execution model are part of ongoing independent research.
+
+Unauthorized reproduction of the design without attribution is discouraged.
