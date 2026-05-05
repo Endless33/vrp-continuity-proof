@@ -78,7 +78,3 @@ Status
 Proof: VALID
 Environment: Oracle Linux 10
 Mode: isolated chaos proof layer
-
-Clean proof  → базовая continuity correctness
-Chaos proof  → duplicate / reorder / stale epoch
-Attack proof → fake authority / replay / invalid epoch jump
