@@ -1,91 +1,145 @@
 # VRP Continuity Proof
 
-Minimal executable proof of a continuity-aware commit boundary.
+Minimal executable proof of continuity-preserving execution under unstable transport conditions.
 
-This repository demonstrates one core invariant:
+This repository demonstrates a core invariant:
 
-> A logical mutation may commit at most once per session.
+A logical mutation may commit at most once per session.
 
----
-
-## Problem
-
-In distributed systems, a network failure can turn one logical action into multiple executions.
-
-Client sends a payment → server commits → response is lost → client retries.
-
-The same logical mutation appears twice.
-
-Without a commit boundary, it may execute twice.
-
-Result:
-
-- duplicate payments  
-- duplicate orders  
-- inventory drift  
-- conflicting state  
-- reconciliation after the fact  
+The project evolved from a minimal commit-boundary proof into a live continuity-aware runtime capable of intercepting real OS packets through a Linux TUN interface and transporting them over a VRP-controlled UDP carrier.
 
 ---
 
-## Model
+# Core Principle
 
-This proof uses a minimal runtime model:
+Traditional systems bind execution correctness to transport stability.
 
-- `session_id`
-- `mutation_id`
-- `authority`
-- `commit_key = session_id + mutation_id`
+VRP separates them.
+
+Session identity remains stable while transport paths may change.
+
+Transport may fail.
+Execution must not.
+
+---
+
+# What problem this solves
+
+Real networks are unstable.
+
+Packets are duplicated, reordered, delayed, replayed, rerouted, or dropped.
+
+Traditional systems often respond with reconnect, renegotiation, session reset, duplicate execution, or reconciliation after the fact.
+
+VRP introduces a different model:
+
+- deterministic commit admission
+- explicit authority ownership
+- fail-closed validation
+- transport-independent session continuity
+
+The goal is not faster reconnect.
+
+The goal is preserving execution correctness during transport instability.
+
+---
+
+# Repository Scope
+
+This repository contains:
+
+- continuity proof runtime
+- deterministic commit model
+- authority validation model
+- replay-safe execution flow
+- chaos execution scenarios
+- transport continuity experiments
+- real TUN + UDP runtime verification
+
+This repository does NOT claim to be:
+
+- a production VPN
+- a finished distributed system
+- a consensus replacement
+- a complete cryptographic product
+
+This is a continuity execution research runtime.
+
+---
+
+# Minimal Runtime Model
+
+Core execution objects:
+
+- session_id
+- mutation_id
+- authority
+- epoch
+- sequence_number
+- commit_key
+
+Commit rule:
+
+commit_key = session_id + mutation_id
 
 A mutation is accepted only if:
 
-1. it comes from the current authority  
-2. its commit key has not been committed before  
+1. it originates from the current authority
+2. its epoch is valid
+3. its sequence is admissible
+4. its commit key was never committed before
 
-Everything else is rejected before it mutates state.
+Everything else is rejected before state mutation.
 
 ---
 
-## Run
+# Fundamental Invariant
 
-```bash
+one logical mutation -> at most one commit
+
+This invariant is enforced under:
+
+- duplicate delivery
+- retry after lost response
+- stale authority
+- stale epoch
+- packet replay
+- reordered arrival
+- multi-node race candidates
+- transport instability
+
+---
+
+# Quick Start
+
+Run the base proof:
+
 go run ./cmd/continuity_proof_demo
-```
 
----
+Expected:
 
-## Expected result
-
-```
 VERDICT: CONSISTENT
 Proof: no logical mutation committed more than once
-```
 
 ---
 
-## What this proves
+# Demo Index
 
-This proof demonstrates commit admission under:
+## Continuity Proof Demo
 
-- retry after lost response  
-- duplicate logical mutation  
-- non-authoritative proposal  
+Run:
 
-Invariant:
+go run ./cmd/continuity_proof_demo
 
-```
-one logical mutation → at most one commit
-```
+Demonstrates:
 
----
+- duplicate rejection
+- authority validation
+- deterministic commit admission
 
-## What this does NOT claim
+Expected:
 
-- This is not a production VPN  
-- This is not a full distributed consensus system  
-- This is not Raft / Spanner replacement  
-
-This is a minimal proof artifact.
+VERDICT: CONSISTENT
 
 ---
 
@@ -93,21 +147,19 @@ This is a minimal proof artifact.
 
 Run:
 
-```bash
 go run ./cmd/chaos_commit_demo
 
-This demo simulates:
-duplicate delivery
-retry after lost response
-stale epoch
-non-authority mutation
-reordered input
-Expected:
-one logical mutation commits at most once
-invalid inputs are rejected
-invariant_violations = 0
-Example output:
+Simulates:
 
+- duplicate delivery
+- retry after lost response
+- stale epoch
+- non-authority mutation
+- reordered input
+
+Expected:
+
+invariant_violations = 0
 VERDICT: CONSISTENT
 
 ---
@@ -116,43 +168,35 @@ VERDICT: CONSISTENT
 
 Run:
 
-```bash
 go run ./cmd/multi_node_race_demo
-```
 
-This demo simulates a race condition between multiple nodes attempting to commit the same mutation.
+Simulates a race condition between multiple nodes attempting to commit the same mutation.
 
 Scenario:
 
-- same session  
-- same epoch  
-- same mutation  
-- different nodes  
+- same session
+- same epoch
+- same mutation
+- different nodes
 
 Expected behavior:
 
-- multiple candidates may exist  
-- only one candidate is allowed to commit  
-- all others are rejected before state mutation  
+- multiple candidates may exist
+- only one candidate is allowed to commit
+- all others are rejected before state mutation
 
 Example outcome:
 
-```
-candidate node=node-A → ACCEPTED
-candidate node=node-B → REJECTED
-
+candidate node=node-A -> ACCEPTED
+candidate node=node-B -> REJECTED
 committed_candidates=1
 authority_conflicts=1
 invariant_violations=0
-
 VERDICT: CONSISTENT
-```
 
 Invariant:
 
-```
-one mutation → at most one commit
-```
+one mutation -> at most one commit
 
 This demonstrates deterministic convergence under concurrent execution.
 
@@ -162,46 +206,33 @@ This demonstrates deterministic convergence under concurrent execution.
 
 Run:
 
-```bash
 go run ./cmd/chaos_orchestrator_demo
-```
 
-This demo simulates combined failure conditions in a single execution:
+Simulates combined failure conditions in a single execution:
 
-- duplicate delivery  
-- delayed retry  
-- reordered arrival  
-- stale epoch  
-- multi-node race candidate  
-- non-authority mutation  
+- duplicate delivery
+- delayed retry
+- reordered arrival
+- stale epoch
+- multi-node race candidate
+- non-authority mutation
 
 Expected behavior:
 
-- valid mutations commit once  
-- duplicate inputs are rejected  
-- stale and invalid inputs are rejected  
-- concurrent candidates do not create divergence  
+- valid mutations commit once
+- duplicate inputs are rejected
+- stale and invalid inputs are rejected
+- concurrent candidates do not create divergence
 
 Example outcome:
 
-```
 committed_mutations=2
 duplicates_rejected=2
 stale_epoch_rejected=1
 non_authority_rejected=1
 race_candidates_rejected=1
 invariant_violations=0
-
 VERDICT: CONSISTENT
-```
-
-Invariant:
-
-```
-one mutation → at most one commit
-```
-
-This demonstrates system-level correctness under combined network chaos.
 
 ---
 
@@ -209,56 +240,133 @@ This demonstrates system-level correctness under combined network chaos.
 
 Run:
 
-```bash
 go run ./cmd/udp_transport_chaos_demo
 
-This demo uses a real UDP socket, goroutines, and random delivery delay.
-It validates that unstable transport timing does not corrupt execution state.
+Uses a real UDP socket, goroutines, and random delivery delay.
+
+Validates that unstable transport timing does not corrupt execution state.
+
 Expected:
 
-stale_epoch → rejected
-non_authority → rejected
-duplicate_mutation → rejected
+stale_epoch -> rejected
+non_authority -> rejected
+duplicate_mutation -> rejected
 invariant_violations = 0
 VERDICT: CONSISTENT
 
 ---
 
-## Run on Windows
+## Oracle Unified Proof Runner
+
+Run:
+
+go run ./cmd/oracle_unified_proof_runner
+
+Expected:
+
+CLEAN: CONSISTENT
+CHAOS: CONSISTENT
+ATTACK: CONSISTENT
+CONSENSUS: CONSISTENT
+OVERALL VERDICT: CONTINUITY PRESERVED
+
+This runner validates:
+
+- clean continuity correctness
+- duplicate and reordered input rejection
+- fake authority rejection
+- replay rejection
+- invalid epoch jump rejection
+- deterministic canonical commit under race
+
+---
+
+## UDP Continuity Handoff Proof
+
+Run server:
+
+go run ./cmd/udp_continuity_server
+
+Run client:
+
+go run ./cmd/udp_continuity_client
+
+This proof validates:
+
+- real UDP endpoint changes
+- session identity preservation
+- replay rejection
+- fake authority rejection
+- continuity across socket changes
+
+Expected server evidence:
+
+PATH CHANGE DETECTED
+session_identity_preserved=true
+VERDICT: UDP CONTINUITY PRESERVED
+
+---
+
+# Run on Windows
 
 Clone the repository and run:
 
-```bat
 run_vrp_proof_windows.bat
 
 Or manually:
 
-Bash
 go run ./cmd/oracle_unified_proof_runner
 
-For UDP continuity handoff proof, use two terminals:
+For UDP continuity handoff proof, use two terminals.
 
 Terminal 1:
 
-Bash
 go run ./cmd/udp_continuity_server
 
 Terminal 2:
 
-Bash
 go run ./cmd/udp_continuity_client
 
 ---
+
+# Stage 3A - Real TUN Integration
+
+VRP moved beyond logical continuity proofs into real OS packet interception.
+
+Verified on Oracle Linux 10 using:
+
+- Linux TUN interface
+- interface name: vrp0
+- userspace Go runtime
+- live ICMP traffic
+
+Verified flow:
+
+Linux kernel
+-> TUN interface
+-> VRP userspace runtime
+-> packet inspection
+
+Observed result:
+
+ICMP packets entered the VRP runtime from the operating system network stack.
+
+This verifies:
+
+- real TUN creation
+- kernel-to-userspace packet flow
+- live packet interception
+- runtime packet ownership
 
 ---
 
 # Stage 3B - Real TUN + UDP Carrier Runtime
 
-VRP has successfully moved beyond logical continuity simulation into real OS packet transport.
+VRP successfully moved from local packet interception into real packet transport over a UDP carrier.
 
-A live Stage 3B runtime was verified on Oracle Linux 10 using:
+Verified on Oracle Linux 10 using:
 
-- Linux TUN interface (`vrp0`)
+- Linux TUN interface vrp0
 - userspace VRP runtime
 - UDP carrier transport
 - live ICMP traffic
@@ -266,17 +374,16 @@ A live Stage 3B runtime was verified on Oracle Linux 10 using:
 
 Verified runtime flow:
 
-```text
 OS ping
-→ TUN interface
-→ VRP runtime
-→ VRP frame encapsulation
-→ UDP carrier transport
-→ remote runtime processing
-→ ICMP reply encapsulation
-→ UDP return path
-→ TUN write-back
-→ live ping reply restored
+-> TUN interface
+-> VRP runtime
+-> VRP frame encapsulation
+-> UDP carrier transport
+-> remote runtime processing
+-> ICMP reply encapsulation
+-> UDP return path
+-> TUN write-back
+-> live ping reply restored
 
 Observed runtime evidence:
 
@@ -293,17 +400,23 @@ Observed network result:
 12 packets transmitted, 12 received, 0% packet loss
 
 This verifies:
-real TUN packet interception
-VRP frame transport over UDP
-packet restoration into the OS network stack
-live continuity-capable userspace transport execution
+
+- real TUN packet interception
+- VRP frame transport over UDP
+- packet restoration into the OS network stack
+- live continuity-capable userspace transport execution
+
 Current status:
-Stage 1 → architectural model
-Stage 2 → continuity proof runtime
-Stage 3A → TUN integration
-Stage 3B → real UDP carrier transport verified
+
+Stage 1 -> architectural model
+Stage 2 -> continuity proof runtime
+Stage 3A -> TUN integration
+Stage 3B -> real UDP carrier transport verified
+
 Next target:
-Stage 3C — transport mutation and carrier handoff during live session execution.
+
+Stage 3C - transport mutation and carrier handoff during live session execution.
+
 Goal:
 
 transport changes
@@ -315,30 +428,32 @@ Execution must not.
 
 ---
 
-## Direction
+# Direction
 
 Part of the VRP / Jumping VPN research:
 
-- session identity above transport  
-- deterministic authority  
-- commit admission  
-- invariant-based runtime verification  
-- continuity under network uncertainty  
+- session identity above transport
+- deterministic authority
+- commit admission
+- invariant-based runtime verification
+- continuity under network uncertainty
+- real packet execution through userspace runtime
 
 ---
 
-## Core idea
+# Core Idea
 
 Continuity is not faster retry.
 
 Continuity is a commit boundary.
 
+Continuity is execution correctness preserved while transport changes.
+
 ---
 
-## Intellectual Origin
+# Intellectual Origin
 
-VRP (Veil Routing Protocol) and the continuity-first execution model
-were originally designed and developed by Vitalijus Riabovas.
+VRP (Veil Routing Protocol) and the continuity-first execution model were originally designed and developed by Vitalijus Riabovas.
 
 Core principles introduced:
 
@@ -347,6 +462,7 @@ Core principles introduced:
 - commit-layer authority model
 - epoch-based authority transitions
 - fail-closed mutation validation
+- transport-independent session continuity
 
 This repository provides reproducible runtime proofs of these concepts.
 
