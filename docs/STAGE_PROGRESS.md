@@ -298,6 +298,81 @@ execution continues
 
 ---
 
+# Stage 3E-B — Cross-OS Remote Peer Transport Test
+
+Status: VERIFIED
+
+Environment:
+
+- Oracle Linux VM runtime node
+- Windows 11 host runtime node
+- UDP carrier across VM/host network boundary
+
+Observed behavior:
+
+- initial remote endpoint attached successfully
+- remote UDP endpoint changed during execution
+- session identity remained stable
+- packet execution resumed after disruption
+- no session reset occurred
+
+Observed mutation:
+
+```text
+old_remote: 192.168.32.128:53123
+new_remote: 192.168.32.128:45121
+session_identity_preserved=true
+session_reset=false
+```
+
+Observed continuation after mutation:
+
+```text
+seq: 29
+UDP FRAME SENT BACK
+
+seq: 30
+UDP FRAME SENT BACK
+```
+
+Verified invariants:
+
+- session identity != transport endpoint
+- endpoint rebinding does not terminate execution
+- runtime may reattach to a new UDP endpoint
+- continuity preserved across cross-OS transport mutation
+- execution continued after temporary disruption
+
+Important scope clarification:
+
+This stage does NOT yet verify:
+
+- public Internet routing
+- WAN packet traversal
+- real NAT rebinding across ISPs
+- hostile Internet conditions
+- multi-region relay continuity
+
+This stage verifies:
+
+- real UDP transport
+- separate operating system network stacks
+- VM-to-host runtime continuity
+- live endpoint mutation handling
+
+Next target:
+
+Stage 3E-C — Public Internet VPS / WAN continuity validation.
+
+Goal:
+
+execution continuity across external network volatility.
+
+Transport may fail.
+Execution must not.
+
+---
+
 # Philosophy
 
 VRP does not treat transport instability as exceptional.
