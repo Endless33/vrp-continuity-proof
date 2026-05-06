@@ -651,6 +651,59 @@ Execution must not.
 
 ---
 
+# Stage 3E-B - Cross-OS Remote Peer Transport Test
+
+VRP was tested across two different operating system environments:
+
+- Oracle Linux VM as the VRP client/runtime node
+- Windows 11 host as the VRP server node
+- UDP transport across the VM-to-host network boundary
+- live session identity preserved across endpoint rebinding
+
+Observed server behavior:
+
+```text
+[SESSION ATTACHED]
+session: session-xyz
+remote: 192.168.32.128:53123
+
+[REMOTE ENDPOINT MUTATION DETECTED]
+old_remote: 192.168.32.128:53123
+new_remote: 192.168.32.128:45121
+session: session-xyz
+session_identity_preserved=true
+session_reset=false
+
+Observed continuation after mutation:
+
+[SERVER] VRP FRAME RECEIVED
+seq: 29
+[SERVER] ICMP REPLY ENCAPSULATED
+[SERVER] UDP FRAME SENT BACK
+
+[SERVER] VRP FRAME RECEIVED
+seq: 30
+[SERVER] ICMP REPLY ENCAPSULATED
+[SERVER] UDP FRAME SENT BACK
+
+What this verifies:
+cross-OS VRP transport path
+separate Linux and Windows network stacks
+UDP carrier outside localhost loopback
+remote endpoint rebinding detection
+preserved session identity after endpoint mutation
+continued packet execution after disruption
+Important note:
+Stage 3E-B is not yet a public Internet VPS test.
+It verifies cross-OS transport continuity between Oracle Linux VM and Windows 11 host.
+Next target:
+Stage 3E-C - external VPS / public Internet peer.
+Goal:
+real public network path real NAT behavior real external endpoint mutation session identity remains stable execution continues
+Transport may fail. Execution must not.
+
+---
+
 # Direction
 
 Part of the VRP / Jumping VPN research:
