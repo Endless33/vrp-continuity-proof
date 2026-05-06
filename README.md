@@ -580,6 +580,77 @@ Execution must not.
 
 ---
 
+# Stage 3E-A - Physical Network Disruption Stress Test
+
+VRP was tested under physical network disruption around the Oracle Linux VM environment.
+
+Test environment:
+
+- Oracle Linux 10 VM
+- VMware
+- physical Alfa USB Wi-Fi adapter passed through into the VM
+- phone hotspot Wi-Fi network
+- live TUN interface
+- VRP userspace runtime
+- live ICMP traffic
+
+During active execution, the environment was disrupted:
+
+- Oracle VM network path disrupted
+- phone hotspot Wi-Fi disabled and re-enabled
+- laptop Wi-Fi disabled and re-enabled
+- physical Alfa Wi-Fi adapter environment remained part of the VM network path
+
+Observed network result:
+
+96 packets transmitted, 94 received, 2.08% packet loss
+
+Observed runtime behavior:
+
+- VRP runtime did not reset
+- TUN packet execution continued
+- packet restoration continued
+- ICMP execution survived disruption
+- session continuity remained active
+- previous endpoint rebinding invariant remained valid from Stage 3D
+
+Important note:
+
+Stage 3E-A is a physical network disruption stress test.
+
+It is not yet the final external Internet peer handoff test.
+
+The current runtime still uses a local UDP carrier, while the surrounding OS / Wi-Fi / VM network environment was physically disrupted.
+
+This verifies that the runtime can remain active during real physical network instability around the host environment.
+
+Current status:
+
+Stage 1 -> architectural model
+Stage 2 -> continuity proof runtime
+Stage 3A -> TUN integration
+Stage 3B -> real UDP carrier transport verified
+Stage 3C -> live UDP carrier handoff verified
+Stage 3D -> live UDP endpoint rebinding verified
+Stage 3E-A -> physical network disruption stress test verified
+
+Next target:
+
+Stage 3E-B - remote peer over real external network / VPS.
+
+Goal:
+
+real external peer
+real public network path
+real NAT / route mutation
+session identity remains stable
+execution continues
+
+Transport may fail.
+Execution must not.
+
+---
+
 # Direction
 
 Part of the VRP / Jumping VPN research:
