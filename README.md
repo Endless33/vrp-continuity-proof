@@ -428,6 +428,81 @@ Execution must not.
 
 ---
 
+# Stage 3C - Live UDP Carrier Handoff
+
+VRP has successfully verified live carrier mutation during active packet execution.
+
+A live ping session was running through:
+
+OS ping
+-> TUN interface
+-> VRP runtime
+-> VRP frame
+-> UDP carrier-A
+-> remote runtime
+-> UDP return path
+-> TUN write-back
+
+During execution, the transport carrier was changed:
+
+carrier-A:
+127.0.0.1:12001
+
+carrier-B:
+127.0.0.1:13001
+
+Observed handoff evidence:
+
+[TRANSPORT FAILURE DETECTED]
+old_carrier: carrier-A
+old_remote: 127.0.0.1:12001
+state: VOLATILE
+
+[TRANSPORT REATTACH]
+new_carrier: carrier-B
+new_remote: 127.0.0.1:13001
+session: session-xyz
+session_identity_preserved=true
+session_reset=false
+
+After reattach, packet execution continued through carrier-B.
+
+Observed network result:
+
+16 packets transmitted, 16 received, 0% packet loss
+
+This verifies:
+
+- live TUN packet execution
+- VRP frame transport over UDP
+- carrier mutation during active session
+- session identity preserved across carrier handoff
+- no session reset
+- continued ICMP execution after transport reattach
+
+Current status:
+
+Stage 1 -> architectural model
+Stage 2 -> continuity proof runtime
+Stage 3A -> TUN integration
+Stage 3B -> real UDP carrier transport verified
+Stage 3C -> live UDP carrier handoff verified
+
+Next target:
+
+Stage 3D - real external endpoint / network path mutation.
+
+Goal:
+
+real network changes
+session identity remains stable
+execution continues
+
+Transport may fail.
+Execution must not.
+
+---
+
 # Direction
 
 Part of the VRP / Jumping VPN research:
