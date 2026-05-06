@@ -250,6 +250,71 @@ go run ./cmd/udp_continuity_client
 
 ---
 
+---
+
+# Stage 3B - Real TUN + UDP Carrier Runtime
+
+VRP has successfully moved beyond logical continuity simulation into real OS packet transport.
+
+A live Stage 3B runtime was verified on Oracle Linux 10 using:
+
+- Linux TUN interface (`vrp0`)
+- userspace VRP runtime
+- UDP carrier transport
+- live ICMP traffic
+- real packet restoration back into the OS network stack
+
+Verified runtime flow:
+
+```text
+OS ping
+→ TUN interface
+→ VRP runtime
+→ VRP frame encapsulation
+→ UDP carrier transport
+→ remote runtime processing
+→ ICMP reply encapsulation
+→ UDP return path
+→ TUN write-back
+→ live ping reply restored
+
+Observed runtime evidence:
+
+[LOCAL] VRP FRAME SENT OVER UDP
+[REMOTE] VRP FRAME RECEIVED
+[REMOTE] ICMP REPLY ENCAPSULATED
+[REMOTE] UDP FRAME SENT BACK
+[LOCAL] UDP FRAME RECEIVED
+payload_written_to_tun=true
+VERDICT: TUN PACKET RESTORED
+
+Observed network result:
+
+12 packets transmitted, 12 received, 0% packet loss
+
+This verifies:
+real TUN packet interception
+VRP frame transport over UDP
+packet restoration into the OS network stack
+live continuity-capable userspace transport execution
+Current status:
+Stage 1 → architectural model
+Stage 2 → continuity proof runtime
+Stage 3A → TUN integration
+Stage 3B → real UDP carrier transport verified
+Next target:
+Stage 3C — transport mutation and carrier handoff during live session execution.
+Goal:
+
+transport changes
+session identity remains stable
+execution continues
+
+Transport may fail.
+Execution must not.
+
+---
+
 ## Direction
 
 Part of the VRP / Jumping VPN research:
