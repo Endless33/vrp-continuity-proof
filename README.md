@@ -503,6 +503,83 @@ Execution must not.
 
 ---
 
+# Stage 3D - Live UDP Endpoint Rebinding
+
+VRP has successfully verified live UDP endpoint rebinding during active TUN packet execution.
+
+A live ping session was running through:
+
+OS ping
+-> TUN interface
+-> VRP client runtime
+-> UDP endpoint A
+-> VRP server runtime
+-> ICMP reply encapsulation
+-> UDP return path
+-> TUN write-back
+
+During execution, the client UDP endpoint changed:
+
+old_remote:
+127.0.0.1:56356
+
+new_remote:
+127.0.0.1:56477
+
+Observed server-side evidence:
+
+[REMOTE ENDPOINT MUTATION DETECTED]
+old_remote: 127.0.0.1:56356
+new_remote: 127.0.0.1:56477
+session: session-xyz
+session_identity_preserved=true
+session_reset=false
+
+After endpoint mutation, packet execution continued.
+
+Observed network result after TUN setup:
+
+12 packets transmitted, 12 received, 0% packet loss
+
+This verifies:
+
+- live TUN packet execution
+- real UDP endpoint rebinding
+- server-side endpoint mutation detection
+- session identity preservation across endpoint change
+- no session reset
+- continued ICMP execution after endpoint mutation
+
+Current status:
+
+Stage 1 -> architectural model
+Stage 2 -> continuity proof runtime
+Stage 3A -> TUN integration
+Stage 3B -> real UDP carrier transport verified
+Stage 3C -> live UDP carrier handoff verified
+Stage 3D -> live UDP endpoint rebinding verified
+
+Next target:
+
+Stage 3E - real external network path mutation.
+
+Goal:
+
+Wi-Fi / LTE style path change
+real external endpoint mutation
+session identity remains stable
+execution continues
+
+Note:
+
+Stage 3D is a controlled local endpoint rebinding test.
+It is not yet a physical Wi-Fi to LTE handoff.
+
+Transport may fail.
+Execution must not.
+
+---
+
 # Direction
 
 Part of the VRP / Jumping VPN research:
