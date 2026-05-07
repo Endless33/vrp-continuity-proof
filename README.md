@@ -1,631 +1,200 @@
-# VRP Continuity Proof
+---
 
-Minimal executable proof of continuity-preserving execution under unstable transport conditions.
+# Stage 3G - Real UDP Continuity Validation
 
-This repository demonstrates a core invariant:
+VRP successfully validated continuity-preserving execution behavior through real UDP ingress processing.
 
-A logical mutation may commit at most once per session.
+This stage moved beyond isolated local runtime simulation and verified observable execution correctness behavior through the Linux UDP network stack.
 
-The project evolved from a minimal commit-boundary proof into a live continuity-aware runtime capable of intercepting real OS packets through a Linux TUN interface and transporting them over a VRP-controlled UDP carrier.
+Unlike earlier proof stages focused primarily on logical commit invariants, Stage 3G validates runtime execution behavior against real UDP datagram ingress and live transport mutation conditions.
+
+The purpose of this stage was not proving "perfect networking."
+
+The purpose was validating that transport instability does not automatically become execution corruption.
+
+Core invariant:
+
+```text
+transport instability must not automatically corrupt execution state
+```
 
 ---
 
-# Core Principle
+# Runtime Validation Chain
 
-Traditional systems bind execution correctness to transport stability.
+The runtime processed real UDP datagrams through the following validation pipeline:
 
-VRP separates them.
+```text
+real UDP receive
+-> packet admission
+-> session validation
+-> replay rejection
+-> epoch validation
+-> authority validation
+-> duplicate mutation protection
+-> canonical commit gate
+-> transport mutation detection
+-> continuity preservation
+```
 
-Session identity remains stable while transport paths may change.
-
-Transport may fail.
-Execution must not.
-
----
-
-# What problem this solves
-
-Real networks are unstable.
-
-Packets are duplicated, reordered, delayed, replayed, rerouted, or dropped.
-
-Traditional systems often respond with reconnect, renegotiation, session reset, duplicate execution, or reconciliation after the fact.
-
-VRP introduces a different model:
-
-- deterministic commit admission
-- explicit authority ownership
-- fail-closed validation
-- transport-independent session continuity
-
-The goal is not faster reconnect.
-
-The goal is preserving execution correctness during transport instability.
+This represents a continuity-aware execution boundary rather than a traditional reconnect-oriented transport model.
 
 ---
 
-# Repository Scope
+# Runtime Environment
 
-This repository contains:
+Validated using:
 
-- continuity proof runtime
-- deterministic commit model
-- authority validation model
-- replay-safe execution flow
-- chaos execution scenarios
-- transport continuity experiments
-- real TUN + UDP runtime verification
+- Oracle Linux VM
+- Go userspace runtime
+- real UDP sockets
+- Linux UDP network stack ingress
+- continuity-aware execution runtime
+- live packet mutation validation
+- runtime transport mutation observation
 
-This repository does NOT claim to be:
-
-- a production VPN
-- a finished distributed system
-- a consensus replacement
-- a complete cryptographic product
-
-This is a continuity execution research runtime.
+The runtime was tested using multiple UDP source port changes while preserving logical session identity.
 
 ---
 
-# Minimal Runtime Model
+# Runtime Scenario
 
-Core execution objects:
+The runtime received multiple real UDP frames representing different execution conditions.
 
-- session_id
-- mutation_id
-- authority
-- epoch
-- sequence_number
-- commit_key
+Observed execution scenarios included:
 
-Commit rule:
+- valid canonical mutation
+- duplicate mutation retry
+- stale epoch mutation
+- non-authoritative mutation
+- epoch advancement
+- transport path mutation
+- continued execution after transport change
 
-commit_key = session_id + mutation_id
+Transport attachment changed repeatedly during execution.
 
-A mutation is accepted only if:
-
-1. it originates from the current authority
-2. its epoch is valid
-3. its sequence is admissible
-4. its commit key was never committed before
-
-Everything else is rejected before state mutation.
+The runtime preserved logical continuity while maintaining deterministic execution admission.
 
 ---
 
-# Fundamental Invariant
-
-one logical mutation -> at most one commit
-
-This invariant is enforced under:
-
-- duplicate delivery
-- retry after lost response
-- stale authority
-- stale epoch
-- packet replay
-- reordered arrival
-- multi-node race candidates
-- transport instability
-
----
-
-# Quick Start
-
-Run the base proof:
-
-go run ./cmd/continuity_proof_demo
-
-Expected:
-
-VERDICT: CONSISTENT
-Proof: no logical mutation committed more than once
-
----
-
-# Demo Index
-
-## Continuity Proof Demo
-
-Run:
-
-go run ./cmd/continuity_proof_demo
-
-Demonstrates:
-
-- duplicate rejection
-- authority validation
-- deterministic commit admission
-
-Expected:
-
-VERDICT: CONSISTENT
-
----
-
-## Chaos Commit Demo
-
-Run:
-
-go run ./cmd/chaos_commit_demo
-
-Simulates:
-
-- duplicate delivery
-- retry after lost response
-- stale epoch
-- non-authority mutation
-- reordered input
-
-Expected:
-
-invariant_violations = 0
-VERDICT: CONSISTENT
-
----
-
-## Multi-Node Race Demo
-
-Run:
-
-go run ./cmd/multi_node_race_demo
-
-Simulates a race condition between multiple nodes attempting to commit the same mutation.
-
-Scenario:
-
-- same session
-- same epoch
-- same mutation
-- different nodes
-
-Expected behavior:
-
-- multiple candidates may exist
-- only one candidate is allowed to commit
-- all others are rejected before state mutation
-
-Example outcome:
-
-candidate node=node-A -> ACCEPTED
-candidate node=node-B -> REJECTED
-committed_candidates=1
-authority_conflicts=1
-invariant_violations=0
-VERDICT: CONSISTENT
-
-Invariant:
-
-one mutation -> at most one commit
-
-This demonstrates deterministic convergence under concurrent execution.
-
----
-
-## Chaos Orchestrator Demo
-
-Run:
-
-go run ./cmd/chaos_orchestrator_demo
-
-Simulates combined failure conditions in a single execution:
-
-- duplicate delivery
-- delayed retry
-- reordered arrival
-- stale epoch
-- multi-node race candidate
-- non-authority mutation
-
-Expected behavior:
-
-- valid mutations commit once
-- duplicate inputs are rejected
-- stale and invalid inputs are rejected
-- concurrent candidates do not create divergence
-
-Example outcome:
-
-committed_mutations=2
-duplicates_rejected=2
-stale_epoch_rejected=1
-non_authority_rejected=1
-race_candidates_rejected=1
-invariant_violations=0
-VERDICT: CONSISTENT
-
----
-
-## UDP Transport Chaos Demo
-
-Run:
-
-go run ./cmd/udp_transport_chaos_demo
-
-Uses a real UDP socket, goroutines, and random delivery delay.
-
-Validates that unstable transport timing does not corrupt execution state.
-
-Expected:
-
-stale_epoch -> rejected
-non_authority -> rejected
-duplicate_mutation -> rejected
-invariant_violations = 0
-VERDICT: CONSISTENT
-
----
-
-## Oracle Unified Proof Runner
-
-Run:
-
-go run ./cmd/oracle_unified_proof_runner
-
-Expected:
-
-CLEAN: CONSISTENT
-CHAOS: CONSISTENT
-ATTACK: CONSISTENT
-CONSENSUS: CONSISTENT
-OVERALL VERDICT: CONTINUITY PRESERVED
-
-This runner validates:
-
-- clean continuity correctness
-- duplicate and reordered input rejection
-- fake authority rejection
-- replay rejection
-- invalid epoch jump rejection
-- deterministic canonical commit under race
-
----
-
-## UDP Continuity Handoff Proof
-
-Run server:
-
-go run ./cmd/udp_continuity_server
-
-Run client:
-
-go run ./cmd/udp_continuity_client
-
-This proof validates:
-
-- real UDP endpoint changes
-- session identity preservation
-- replay rejection
-- fake authority rejection
-- continuity across socket changes
-
-Expected server evidence:
-
-PATH CHANGE DETECTED
-session_identity_preserved=true
-VERDICT: UDP CONTINUITY PRESERVED
-
----
-
-# Run on Windows
-
-Clone the repository and run:
-
-run_vrp_proof_windows.bat
-
-Or manually:
-
-go run ./cmd/oracle_unified_proof_runner
-
-For UDP continuity handoff proof, use two terminals.
-
-Terminal 1:
-
-go run ./cmd/udp_continuity_server
-
-Terminal 2:
-
-go run ./cmd/udp_continuity_client
-
----
-
-# Stage 3A - Real TUN Integration
-
-VRP moved beyond logical continuity proofs into real OS packet interception.
-
-Verified on Oracle Linux 10 using:
-
-- Linux TUN interface
-- interface name: vrp0
-- userspace Go runtime
-- live ICMP traffic
-
-Verified flow:
-
-Linux kernel
--> TUN interface
--> VRP userspace runtime
--> packet inspection
-
-Observed result:
-
-ICMP packets entered the VRP runtime from the operating system network stack.
-
-This verifies:
-
-- real TUN creation
-- kernel-to-userspace packet flow
-- live packet interception
-- runtime packet ownership
-
----
-
-# Stage 3B - Real TUN + UDP Carrier Runtime
-
-VRP successfully moved from local packet interception into real packet transport over a UDP carrier.
-
-Verified on Oracle Linux 10 using:
-
-- Linux TUN interface vrp0
-- userspace VRP runtime
-- UDP carrier transport
-- live ICMP traffic
-- real packet restoration back into the OS network stack
-
-Verified runtime flow:
-
-OS ping
--> TUN interface
--> VRP runtime
--> VRP frame encapsulation
--> UDP carrier transport
--> remote runtime processing
--> ICMP reply encapsulation
--> UDP return path
--> TUN write-back
--> live ping reply restored
-
-Observed runtime evidence:
-
-[LOCAL] VRP FRAME SENT OVER UDP
-[REMOTE] VRP FRAME RECEIVED
-[REMOTE] ICMP REPLY ENCAPSULATED
-[REMOTE] UDP FRAME SENT BACK
-[LOCAL] UDP FRAME RECEIVED
-payload_written_to_tun=true
-VERDICT: TUN PACKET RESTORED
-
-Observed network result:
-
-12 packets transmitted, 12 received, 0% packet loss
-
-This verifies:
-
-- real TUN packet interception
-- VRP frame transport over UDP
-- packet restoration into the OS network stack
-- live continuity-capable userspace transport execution
-
-Current status:
-
-Stage 1 -> architectural model
-Stage 2 -> continuity proof runtime
-Stage 3A -> TUN integration
-Stage 3B -> real UDP carrier transport verified
-
-Next target:
-
-Stage 3C - transport mutation and carrier handoff during live session execution.
-
-Goal:
-
-transport changes
-session identity remains stable
-execution continues
-
-Transport may fail.
-Execution must not.
-
----
-
-# Stage 3C - Live UDP Carrier Handoff
-
-VRP has successfully verified live carrier mutation during active packet execution.
-
-A live ping session was running through:
-
-OS ping
--> TUN interface
--> VRP runtime
--> VRP frame
--> UDP carrier-A
--> remote runtime
--> UDP return path
--> TUN write-back
-
-During execution, the transport carrier was changed:
-
-carrier-A:
-127.0.0.1:12001
-
-carrier-B:
-127.0.0.1:13001
-
-Observed handoff evidence:
-
-[TRANSPORT FAILURE DETECTED]
-old_carrier: carrier-A
-old_remote: 127.0.0.1:12001
-state: VOLATILE
-
-[TRANSPORT REATTACH]
-new_carrier: carrier-B
-new_remote: 127.0.0.1:13001
-session: session-xyz
-session_identity_preserved=true
-session_reset=false
-
-After reattach, packet execution continued through carrier-B.
-
-Observed network result:
-
-16 packets transmitted, 16 received, 0% packet loss
-
-This verifies:
-
-- live TUN packet execution
-- VRP frame transport over UDP
-- carrier mutation during active session
-- session identity preserved across carrier handoff
-- no session reset
-- continued ICMP execution after transport reattach
-
-Current status:
-
-Stage 1 -> architectural model
-Stage 2 -> continuity proof runtime
-Stage 3A -> TUN integration
-Stage 3B -> real UDP carrier transport verified
-Stage 3C -> live UDP carrier handoff verified
-
-Next target:
-
-Stage 3D - real external endpoint / network path mutation.
-
-Goal:
-
-real network changes
-session identity remains stable
-execution continues
-
-Transport may fail.
-Execution must not.
-
----
-
-# Stage 3D - Live UDP Endpoint Rebinding
-
-VRP has successfully verified live UDP endpoint rebinding during active TUN packet execution.
-
-A live ping session was running through:
-
-OS ping
--> TUN interface
--> VRP client runtime
--> UDP endpoint A
--> VRP server runtime
--> ICMP reply encapsulation
--> UDP return path
--> TUN write-back
-
-During execution, the client UDP endpoint changed:
-
-old_remote:
-127.0.0.1:56356
-
-new_remote:
-127.0.0.1:56477
-
-Observed server-side evidence:
-
-[REMOTE ENDPOINT MUTATION DETECTED]
-old_remote: 127.0.0.1:56356
-new_remote: 127.0.0.1:56477
-session: session-xyz
-session_identity_preserved=true
-session_reset=false
-
-After endpoint mutation, packet execution continued.
-
-Observed network result after TUN setup:
-
-12 packets transmitted, 12 received, 0% packet loss
-
-This verifies:
-
-- live TUN packet execution
-- real UDP endpoint rebinding
-- server-side endpoint mutation detection
-- session identity preservation across endpoint change
-- no session reset
-- continued ICMP execution after endpoint mutation
-
-Current status:
-
-Stage 1 -> architectural model
-Stage 2 -> continuity proof runtime
-Stage 3A -> TUN integration
-Stage 3B -> real UDP carrier transport verified
-Stage 3C -> live UDP carrier handoff verified
-Stage 3D -> live UDP endpoint rebinding verified
-
-Next target:
-
-Stage 3E - real external network path mutation.
-
-Goal:
-
-Wi-Fi / LTE style path change
-real external endpoint mutation
-session identity remains stable
-execution continues
-
-Note:
-
-Stage 3D is a controlled local endpoint rebinding test.
-It is not yet a physical Wi-Fi to LTE handoff.
-
-Transport may fail.
-Execution must not.
-
----
-
-# Stage 3E-A - Physical Network Disruption Stress Test
-
-VRP was tested under physical network disruption around the Oracle Linux VM environment.
-
-Test environment:
-
-- Oracle Linux 10 VM
-- VMware
-- physical Alfa USB Wi-Fi adapter passed through into the VM
-- phone hotspot Wi-Fi network
-- live TUN interface
-- VRP userspace runtime
-- live ICMP traffic
-
-During active execution, the environment was disrupted:
-
-- Oracle VM network path disrupted
-- phone hotspot Wi-Fi disabled and re-enabled
-- laptop Wi-Fi disabled and re-enabled
-- physical Alfa Wi-Fi adapter environment remained part of the VM network path
-
-Observed network result:
-
-96 packets transmitted, 94 received, 2.08% packet loss
+# Observed Runtime Evidence
 
 Observed runtime behavior:
 
-- VRP runtime did not reset
-- TUN packet execution continued
-- packet restoration continued
-- ICMP execution survived disruption
-- session continuity remained active
-- previous endpoint rebinding invariant remained valid from Stage 3D
+```text
+real_udp_receive=true
+transport_observation=path_changed
+continuity_action=session_identity_preserved
 
-Important note:
+duplicate_mutation_rejected
+stale_epoch_rejected
+non_authoritative_packet_rejected
 
-Stage 3E-A is a physical network disruption stress test.
+canonical_commit=accepted
+state_mutation=committed_once
+```
 
-It is not yet the final external Internet peer handoff test.
+Observed final runtime report:
 
-The current runtime still uses a local UDP carrier, while the surrounding OS / Wi-Fi / VM network environment was physically disrupted.
+```text
+accepted=3
+rejected=3
+replay_rejected=1
+reattach_detected=5
+committed_mutations=3
 
-This verifies that the runtime can remain active during real physical network instability around the host environment.
+VERDICT=REAL_NETWORK_CONTINUITY_PRESERVED
+```
 
-Current status:
+---
 
+# What This Verifies
+
+Stage 3G verifies several important runtime properties:
+
+## Real UDP ingress processing
+
+Packets entered the runtime through the Linux UDP stack rather than isolated in-memory simulation.
+
+## Deterministic execution admission
+
+Invalid packets were rejected before state mutation.
+
+## Replay-safe mutation handling
+
+Duplicate logical mutations did not commit more than once.
+
+## Epoch-bounded execution
+
+Stale execution attempts were rejected before mutation.
+
+## Authority-bounded mutation rights
+
+Non-authoritative packets were denied mutation access.
+
+## Transport-independent session continuity
+
+Transport path changes did not terminate logical session identity.
+
+## Canonical state mutation boundary
+
+Execution mutation remained bounded behind explicit runtime validation.
+
+---
+
+# Architectural Meaning
+
+Traditional systems frequently bind execution correctness directly to transport continuity.
+
+This creates behaviors such as:
+
+- reconnect-driven execution recovery
+- duplicated mutation attempts
+- post-failure reconciliation
+- session rebuild logic
+- transport-coupled execution state
+
+VRP follows a different model.
+
+Transport is treated as a volatile carrier attachment.
+
+Execution continuity is treated as the protected invariant.
+
+Observed runtime behavior demonstrates that:
+
+```text
+transport changed
+session identity survived
+execution continued
+invalid mutations were rejected
+```
+
+The runtime does not assume transport stability.
+
+The runtime enforces execution correctness despite transport instability.
+
+---
+
+# What Stage 3G Does NOT Yet Claim
+
+Stage 3G does not yet validate:
+
+- public Internet continuity
+- relay mesh routing
+- cryptographic hardening
+- internet-scale latency behavior
+- packet loss correction
+- Byzantine consensus
+- distributed replication
+- production deployment readiness
+
+This remains a continuity execution research runtime.
+
+---
+
+# Current Runtime Status
+
+```text
 Stage 1 -> architectural model
 Stage 2 -> continuity proof runtime
 Stage 3A -> TUN integration
@@ -633,115 +202,29 @@ Stage 3B -> real UDP carrier transport verified
 Stage 3C -> live UDP carrier handoff verified
 Stage 3D -> live UDP endpoint rebinding verified
 Stage 3E-A -> physical network disruption stress test verified
-
-Next target:
-
-Stage 3E-B - remote peer over real external network / VPS.
-
-Goal:
-
-real external peer
-real public network path
-real NAT / route mutation
-session identity remains stable
-execution continues
-
-Transport may fail.
-Execution must not.
+Stage 3E-B -> cross-OS remote peer transport verified
+Stage 3G -> real UDP continuity validation verified
+```
 
 ---
 
-# Stage 3E-B - Cross-OS Remote Peer Transport Test
+# Next Runtime Targets
 
-VRP was tested across two different operating system environments:
+Next validation stages include:
 
-- Oracle Linux VM as the VRP client/runtime node
-- Windows 11 host as the VRP server node
-- UDP transport across the VM-to-host network boundary
-- live session identity preserved across endpoint rebinding
+- packet disorder stress
+- packet duplication storms
+- jitter instability
+- NAT rebinding survival
+- relay failover continuity
+- multi-node authority races
+- contradiction injection
+- concurrent execution conflict testing
+- runtime invariant pressure testing
 
-Observed server behavior:
+Goal:
 
 ```text
-[SESSION ATTACHED]
-session: session-xyz
-remote: 192.168.32.128:53123
-
-[REMOTE ENDPOINT MUTATION DETECTED]
-old_remote: 192.168.32.128:53123
-new_remote: 192.168.32.128:45121
-session: session-xyz
-session_identity_preserved=true
-session_reset=false
-
-Observed continuation after mutation:
-
-[SERVER] VRP FRAME RECEIVED
-seq: 29
-[SERVER] ICMP REPLY ENCAPSULATED
-[SERVER] UDP FRAME SENT BACK
-
-[SERVER] VRP FRAME RECEIVED
-seq: 30
-[SERVER] ICMP REPLY ENCAPSULATED
-[SERVER] UDP FRAME SENT BACK
-
-What this verifies:
-cross-OS VRP transport path
-separate Linux and Windows network stacks
-UDP carrier outside localhost loopback
-remote endpoint rebinding detection
-preserved session identity after endpoint mutation
-continued packet execution after disruption
-Important note:
-Stage 3E-B is not yet a public Internet VPS test.
-It verifies cross-OS transport continuity between Oracle Linux VM and Windows 11 host.
-Next target:
-Stage 3E-C - external VPS / public Internet peer.
-Goal:
-real public network path real NAT behavior real external endpoint mutation session identity remains stable execution continues
-Transport may fail. Execution must not.
-
----
-
-# Direction
-
-Part of the VRP / Jumping VPN research:
-
-- session identity above transport
-- deterministic authority
-- commit admission
-- invariant-based runtime verification
-- continuity under network uncertainty
-- real packet execution through userspace runtime
-
----
-
-# Core Idea
-
-Continuity is not faster retry.
-
-Continuity is a commit boundary.
-
-Continuity is execution correctness preserved while transport changes.
-
----
-
-# Intellectual Origin
-
-VRP (Veil Routing Protocol) and the continuity-first execution model were originally designed and developed by Vitalijus Riabovas.
-
-Core principles introduced:
-
-- session != transport
-- execution correctness over unreliable networks
-- commit-layer authority model
-- epoch-based authority transitions
-- fail-closed mutation validation
-- transport-independent session continuity
-
-This repository provides reproducible runtime proofs of these concepts.
-
-The architecture, invariants, and execution model are part of ongoing independent research.
-
-Unauthorized reproduction of the design without attribution is discouraged.
+transport may fail
+execution must not
+```
